@@ -1,0 +1,5 @@
+syntax = "proto3";
+package tutorial;
+message led_state {
+	optional bool state = 1;
+	}
