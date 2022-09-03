@@ -20,6 +20,7 @@
 #include "main.h"
 #include "usb_device.h"
 #include "basic_control.h"
+#include "usbd_cdc_if.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -45,15 +46,16 @@ TIM_HandleTypeDef htim4;
 /* USER CODE BEGIN PV */
 int mscount = 0;
 unsigned char test_data[] = "This is a big ass string\r\n";
-led_state led_control;
+// led_state led_control;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM4_Init(void);
-void process_command(led_state&);
 /* USER CODE BEGIN PFP */
+// uint8_t send_string(uint8_t*[], uint8_t length);
+// void process_command(led_state&);
 
 /* USER CODE END PFP */
 
@@ -93,7 +95,9 @@ int main(void)
   MX_TIM4_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin,GPIO_PinState::GPIO_PIN_RESET);
+  uint8_t nbyte = 0;
+
+  //HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin,GPIO_PinState::GPIO_PIN_RESET);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -102,8 +106,21 @@ int main(void)
   {
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
-  }
+   uint8_t receive_status;
+   uint32_t l = 1;
+   receive_status = USBD_Interface_fops_FS.Receive(&nbyte, &l);
+   if(receive_status == USBD_OK){
+    uint8_t string_buffer[] = "I recieved X in string\r";
+    string_buffer[11] = nbyte;
+    CDC_Transmit_FS(string_buffer,sizeof(string_buffer));
+	  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+   }
+   else{
+    uint8_t buf = 0x30;
+   	CDC_Transmit_FS(&buf, 1);
+   }
   /* USER CODE END 3 */
+  }
 }
 
 /**
@@ -209,7 +226,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
@@ -233,13 +250,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim){
 		//HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 	}
 	mscount += 1;
-	USBD_Interface_fops_FS.Receive(&led_control, sizeof(led_control));
-	process_command(&led_control);
 }
 
-void process_command(led_state& input_msg){
-	bool set_led = input_msg.get_state();
-	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, set_led);
+// void process_command(led_state& input_msg){
+	//bool set_led = input_msg.get_state();
+	//HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, set_led);
+  //HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
+// }
+
+uint8_t send_string(uint8_t*[], uint8_t length){
+  for(uint8_t i; i<length; i++){
+
+  }
 }
 /* USER CODE END 4 */
 
