@@ -19,7 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
-#include "basic_control.pb.h"
+#include "basic_control.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -28,7 +28,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-/* USER CODE END PTD */
+/* USER CODE END  PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
@@ -45,12 +45,14 @@ TIM_HandleTypeDef htim4;
 /* USER CODE BEGIN PV */
 int mscount = 0;
 unsigned char test_data[] = "This is a big ass string\r\n";
+led_state led_control;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM4_Init(void);
+void process_command(led_state&);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -91,7 +93,7 @@ int main(void)
   MX_TIM4_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin,1);
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin,GPIO_PinState::GPIO_PIN_RESET);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -99,7 +101,6 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -229,10 +230,16 @@ static void MX_GPIO_Init(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim){
 	if(mscount == 500){
 		mscount = 0;
-		CDC_Transmit_FS(&test_data, sizeof(test_data));
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		//HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 	}
 	mscount += 1;
+	USBD_Interface_fops_FS.Receive(&led_control, sizeof(led_control));
+	process_command(&led_control);
+}
+
+void process_command(led_state& input_msg){
+	bool set_led = input_msg.get_state();
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, set_led);
 }
 /* USER CODE END 4 */
 
